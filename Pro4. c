@@ -1,0 +1,181 @@
+#include <GL/glut.h>
+#include <cmath>
+
+// Rotation angle
+float angle = 0.0f;
+
+// Rotation speed
+float speed = 2.0f;
+
+// Animation state
+bool rotating = true;
+
+// true  -> rotate about origin
+// false -> rotate about fixed point
+bool rotateAboutOrigin = true;
+
+// Fixed point
+float px = 2.0f;
+float py = 1.0f;
+
+// Draw triangle
+void drawTriangle()
+{
+    glBegin(GL_TRIANGLES);
+
+        glVertex2f(1.0f, 1.0f);
+        glVertex2f(3.0f, 1.0f);
+        glVertex2f(2.0f, 3.0f);
+
+    glEnd();
+}
+
+// Draw fixed point
+void drawFixedPoint()
+{
+    glPointSize(8.0f);
+
+    glBegin(GL_POINTS);
+        glVertex2f(px, py);
+    glEnd();
+}
+
+// Display function
+void display()
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glLoadIdentity();
+
+    // Draw coordinate axes
+    glBegin(GL_LINES);
+
+        // X-axis
+        glVertex2f(-10.0f, 0.0f);
+        glVertex2f(10.0f, 0.0f);
+
+        // Y-axis
+        glVertex2f(0.0f, -10.0f);
+        glVertex2f(0.0f, 10.0f);
+
+    glEnd();
+
+    // Draw fixed point
+    drawFixedPoint();
+
+    // Save current transformation
+    glPushMatrix();
+
+    if (rotateAboutOrigin)
+    {
+        // Rotation about origin
+        glRotatef(angle, 0.0f, 0.0f, 1.0f);
+    }
+    else
+    {
+        // Rotation about fixed point (px, py)
+        glTranslatef(px, py, 0.0f);
+
+        glRotatef(angle, 0.0f, 0.0f, 1.0f);
+
+        glTranslatef(-px, -py, 0.0f);
+    }
+
+    // Draw triangle
+    drawTriangle();
+
+    glPopMatrix();
+
+    glutSwapBuffers();
+}
+
+// Timer function for animation
+void timer(int value)
+{
+    if (rotating)
+    {
+        angle += speed;
+
+        if (angle >= 360.0f)
+            angle -= 360.0f;
+    }
+
+    glutPostRedisplay();
+
+    // Call again after 30 ms
+    glutTimerFunc(30, timer, 0);
+}
+
+// Keyboard controls
+void keyboard(unsigned char key, int x, int y)
+{
+    switch (key)
+    {
+        // Start / Stop rotation
+        case ' ':
+            rotating = !rotating;
+            break;
+
+        // Rotate about origin
+        case 'o':
+        case 'O':
+            rotateAboutOrigin = true;
+            break;
+
+        // Rotate about fixed point
+        case 'f':
+        case 'F':
+            rotateAboutOrigin = false;
+            break;
+
+        // Exit
+        case 27:
+            exit(0);
+    }
+
+    glutPostRedisplay();
+}
+
+// Initialize OpenGL
+void init()
+{
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+    // Triangle/axis color
+    glColor3f(0.0f, 0.0f, 0.0f);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    gluOrtho2D(-10.0, 10.0, -10.0, 10.0);
+
+    glMatrixMode(GL_MODELVIEW);
+}
+
+// Main function
+int main(int argc, char** argv)
+{
+    glutInit(&argc, argv);
+
+    glutInitDisplayMode(
+        GLUT_DOUBLE |
+        GLUT_RGB
+    );
+
+    glutInitWindowSize(800, 800);
+    glutInitWindowPosition(100, 100);
+
+    glutCreateWindow("Triangle Rotation");
+
+    init();
+
+    glutDisplayFunc(display);
+    glutKeyboardFunc(keyboard);
+
+    // Start animation
+    glutTimerFunc(30, timer, 0);
+
+    glutMainLoop();
+
+    return 0;
+}
