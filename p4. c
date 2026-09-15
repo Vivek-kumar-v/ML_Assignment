@@ -1,0 +1,222 @@
+#include <GL/glut.h>
+#include <math.h>
+#include <stdio.h>
+
+#define PI 3.14159265358979323846
+
+// Rotation angles
+float angleOrigin = 0.0f;      // Triangle 1: rotates about origin
+float angleFixed = 0.0f;       // Triangle 2: rotates about fixed point
+
+// Fixed point for triangle 2
+float fixedX = 3.0f;
+float fixedY = 1.5f;
+
+// Animation control
+int running = 1;
+
+// ---------- Utility: draw text ----------
+void drawText(float x, float y, const char *text) {
+    glRasterPos2f(x, y);
+    while (*text) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *text);
+        text++;
+    }
+}
+
+// ---------- Draw filled triangle with color ----------
+void drawTriangle(float cx, float cy, float size,
+                  float r, float g, float b,
+                  float rotAngle) {
+    glPushMatrix();
+    glTranslatef(cx, cy, 0.0f);
+    glRotatef(rotAngle, 0.0f, 0.0f, 1.0f);
+
+    glColor3f(r, g, b);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(0.0f, size);
+        glVertex2f(-size * 0.866f, -size * 0.5f);
+        glVertex2f(size * 0.866f, -size * 0.5f);
+    glEnd();
+
+    // Outline for beauty
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glLineWidth(2.0f);
+    glBegin(GL_LINE_LOOP);
+        glVertex2f(0.0f, size);
+        glVertex2f(-size * 0.866f, -size * 0.5f);
+        glVertex2f(size * 0.866f, -size * 0.5f);
+    glEnd();
+
+    glPopMatrix();
+}
+
+// ---------- Draw a small marker (fixed point) ----------
+void drawMarker(float x, float y, float r, float g, float b) {
+    glColor3f(r, g, b);
+    glPointSize(10.0f);
+    glBegin(GL_POINTS);
+        glVertex2f(x, y);
+    glEnd();
+
+    // Small circle around it
+    glColor3f(1.0f, 1.0f, 0.0f);
+    glLineWidth(1.5f);
+    glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < 30; i++) {
+            float theta = 2.0f * PI * i / 30;
+            glVertex2f(x + 0.15f * cosf(theta), y + 0.15f * sinf(theta));
+        }
+    glEnd();
+}
+
+// ---------- Display ----------
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Draw axes
+    glColor3f(0.3f, 0.3f, 0.3f);
+    glLineWidth(1.0f);
+    glBegin(GL_LINES);
+        glVertex2f(-8.0f, 0.0f);
+        glVertex2f( 8.0f, 0.0f);
+        glVertex2f( 0.0f, -6.0f);
+        glVertex2f( 0.0f,  6.0f);
+    glEnd();
+
+    // ----- Triangle 1: rotating about origin -----
+    // Traced path circle
+    glColor3f(0.25f, 0.25f, 0.35f);
+    glLineWidth(1.0f);
+    glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < 60; i++) {
+            float theta = 2.0f * PI * i / 60;
+            glVertex2f(2.5f * cosf(theta), 2.5f * sinf(theta));
+        }
+    glEnd();
+
+    // The triangle centered at distance 2.5 from origin, rotating about origin
+    float cx1 = 2.5f * cosf(angleOrigin * PI / 180.0f);
+    float cy1 = 2.5f * sinf(angleOrigin * PI / 180.0f);
+    drawTriangle(cx1, cy1, 0.8f, 1.0f, 0.3f, 0.3f, angleOrigin * 2.0f);
+
+    // Marker at origin
+    drawMarker(0.0f, 0.0f, 1.0f, 0.5f, 0.0f);
+
+    // ----- Triangle 2: rotating about fixed point -----
+    // Circle trace around fixed point
+    glColor3f(0.25f, 0.35f, 0.25f);
+    glBegin(GL_LINE_LOOP);
+        for (int i = 0; i < 60; i++) {
+            float theta = 2.0f * PI * i / 60;
+            glVertex2f(fixedX + 1.5f * cosf(theta),
+                       fixedY + 1.5f * sinf(theta));
+        }
+    glEnd();
+
+    // Triangle rotating about the fixed point
+    float cx2 = fixedX + 1.5f * cosf(angleFixed * PI / 180.0f);
+    float cy2 = fixedY + 1.5f * sinf(angleFixed * PI / 180.0f);
+    drawTriangle(cx2, cy2, 0.8f, 0.3f, 0.6f, 1.0f, -angleFixed * 2.0f);
+
+    // Marker at fixed point
+    drawMarker(fixedX, fixedY, 1.0f, 0.4f, 0.0f);
+
+    // ----- Labels -----
+    glColor3f(1.0f, 0.8f, 0.8f);
+    drawText(-7.7f, 5.4f, "Triangle 1: rotating about ORIGIN (0,0)");
+    glColor3f(0.8f, 0.8f, 1.0f);
+    drawText(-7.7f, 4.9f, "Triangle 2: rotating about FIXED POINT (3.0, 1.5)");
+
+    glColor3f(1.0f, 1.0f, 0.5f);
+    drawText(-7.7f, -5.4f, "Press SPACE: Pause/Resume   |   ESC: Quit   |   F: Move Fixed Point");
+
+    char buf[64];
+    sprintf(buf, "Running: %s", running ? "YES" : "NO");
+    glColor3f(running ? 0.4f : 1.0f, running ? 1.0f : 0.4f, 0.4f);
+    drawText(4.0f, 5.4f, buf);
+
+    glutSwapBuffers();
+}
+
+// ---------- Update ----------
+void update(int value) {
+    if (running) {
+        angleOrigin += 1.5f;
+        angleFixed  += 2.0f;
+
+        if (angleOrigin > 360.0f) angleOrigin -= 360.0f;
+        if (angleFixed  > 360.0f) angleFixed  -= 360.0f;
+    }
+
+    glutPostRedisplay();
+    glutTimerFunc(16, update, 0); // ~60 FPS
+}
+
+// ---------- Reshape ----------
+void reshape(int w, int h) {
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    if (w <= h)
+        gluOrtho2D(-8.0, 8.0, -8.0 * (float)h / (float)w, 8.0 * (float)h / (float)w);
+    else
+        gluOrtho2D(-8.0 * (float)w / (float)h, 8.0 * (float)w / (float)h, -8.0, 8.0);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+// ---------- Keyboard ----------
+void keyboard(unsigned char key, int x, int y) {
+    switch (key) {
+        case 27: // ESC
+            exit(0);
+            break;
+        case ' ': // Toggle pause
+            running = !running;
+            printf("Animation %s\n", running ? "RESUMED" : "PAUSED");
+            break;
+        case 'f':
+        case 'F':
+            // Move fixed point in a cycle for demonstration
+            fixedX += 0.5f;
+            if (fixedX > 6.0f) fixedX = 0.5f;
+            printf("Fixed point moved to (%.1f, %.1f)\n", fixedX, fixedY);
+            break;
+    }
+    glutPostRedisplay();
+}
+
+// ---------- Init ----------
+void init() {
+    glClearColor(0.05f, 0.05f, 0.12f, 1.0f);
+    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+}
+
+// ---------- Main ----------
+int main(int argc, char **argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    glutInitWindowSize(900, 700);
+    glutInitWindowPosition(100, 50);
+    glutCreateWindow("OpenGL: Rotating Triangles - Origin & Fixed Point");
+
+    init();
+
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutKeyboardFunc(keyboard);
+    glutTimerFunc(0, update, 0);
+
+    printf("=== Rotating Triangles Demo ===\n");
+    printf("SPACE : Pause / Resume\n");
+    printf("F     : Move fixed point\n");
+    printf("ESC   : Quit\n");
+
+    glutMainLoop();
+    return 0;
+}
